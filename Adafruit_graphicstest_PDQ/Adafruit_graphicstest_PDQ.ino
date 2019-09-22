@@ -8,48 +8,61 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 
-#ifdef ESP32
+#if defined(ESP32)
 #define TFT_CS 5
 #define TFT_DC 16
 #define TFT_RST 17
 #define TFT_BL 22
+#elif defined(ESP8266)
+#define TFT_CS 15
+#define TFT_DC 5
+#define TFT_RST -1
+#define TFT_BL 4
 #else
+#define TFT_CS 20
 #define TFT_DC 19
 #define TFT_RST 18
 #define TFT_BL 10
 #endif
 #define TFT_ROTATION 0
-#define TFT_WIDTH 240
-#define TFT_HEIGHT 320
-#define TFT_COL_OFFSET 0
-#define TFT_ROW_OFFSET 0
-
-uint32_t w = TFT_WIDTH;
-uint32_t h = TFT_HEIGHT;
-uint32_t n = min(w, h);
-uint32_t n1 = min(w, h) - 1;
-uint32_t cx = w / 2;
-uint32_t cy = h / 2;
-uint32_t cx1 = cx - 1;
-uint32_t cy1 = cy - 1;
-uint32_t cn = min(cx1, cy1);
-uint32_t cn1 = min(cx1, cy1) - 1;
 
 // Use hardware SPI
 Adafruit_ILI9341 *tft = new Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
+uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+uint8_t tsa, tsb, tsc, ds;
+
 unsigned long total = 0;
 unsigned long tn = 0;
-void setup() {
+
+void setup()
+{
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println(""); Serial.println("");
+  while (!Serial)
+  {
+    // wait and do nothing
+  }
+
   Serial.println("Adafruit GFX library Test!");
 
-  tft->begin();
-  //tft->begin(80000000);
+  // tft->begin();
+  tft->begin(40000000); /* specify data bus speed */
   tft->setRotation(TFT_ROTATION);
-  //tft->invertDisplay(true);
+
+  w = tft->width();
+  h = tft->height();
+  n = min(w, h);
+  n1 = min(w, h) - 1;
+  cx = w / 2;
+  cy = h / 2;
+  cx1 = cx - 1;
+  cy1 = cy - 1;
+  cn = min(cx1, cy1);
+  cn1 = min(cx1, cy1) - 1;
+  tsa = (w <= 160) ? 1 : ((w <= 240) ? 2 : 3); // text size A
+  tsb = (w <= 240) ? 1 : 2;                    // text size B
+  tsc = (w <= 220) ? 1 : 2;                    // text size C
+  ds = (w <= 160) ? 9 : 12;                    // digit size
 
 #ifdef TFT_BL
   pinMode(TFT_BL, OUTPUT);
@@ -149,106 +162,141 @@ void loop(void)
 
   tft->setCursor(0, 0);
   tft->setTextColor(ILI9341_MAGENTA);
-  tft->setTextSize(2);
-
+  tft->setTextSize(tsa);
   tft->println(F("Adafruit GFX"));
-
   tft->setTextSize(1);
   tft->setTextColor(ILI9341_WHITE);
   tft->println(F(""));
-  tft->setTextSize(1);
-  tft->println(F(""));
-  tft->setTextColor(tft->color565(0x80, 0x80, 0x80));
 
-  tft->setTextColor(ILI9341_GREEN);
-  tft->println(F(" Benchmark               microseconds"));
-  tft->println(F(""));
+  if (h > w)
+  {
+    tft->setTextColor(ILI9341_GREEN);
+    tft->setTextSize(tsb);
+    tft->print(F("Benchmark "));
+    tft->setTextSize(tsc);
+    if (ds == 12)
+    {
+      tft->print(F("   "));
+    }
+    tft->println(F("micro-secs"));
+    tft->setTextSize(1);
+    tft->println(F(""));
+    tft->setTextColor(ILI9341_YELLOW);
+  }
+
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Screen fill "));
   tft->setTextColor(ILI9341_YELLOW);
-
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Screen fill        "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextSize(tsc);
   printnice(usecFillScreen);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Text               "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Text        "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecText);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Pixels             "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Pixels      "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecPixels);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Lines              "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Lines       "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecLines);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Horiz/Vert Lines   "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("H/V Lines   "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecFastLines);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Rectangles-filled  "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Rectangles F"));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecFilledRects);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Rectangles         "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Rectangles  "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecRects);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Circles-filled     "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Circles F   "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecFilledCircles);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Circles            "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Circles     "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecCircles);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Triangles-filled   "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Triangles F "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecFilledTrangles);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Triangles          "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("Triangles   "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecTriangles);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Rounded rects-fill "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("RoundRects F"));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecFilledRoundRects);
 
-  tft->setTextColor(ILI9341_CYAN); tft->setTextSize(1);
-  tft->print(F("Rounded rects      "));
-  tft->setTextColor(ILI9341_YELLOW); tft->setTextSize(2);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->setTextSize(tsb);
+  tft->print(F("RoundRects  "));
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->setTextSize(tsc);
   printnice(usecRoundRects);
 
-  tft->setTextSize(1);
-  tft->println(F(""));
-  tft->setTextColor(ILI9341_GREEN); tft->setTextSize(2);
-  tft->print(F("Benchmark Complete!"));
+  if (h > w)
+  {
+    tft->setTextSize(1);
+    tft->println(F(""));
+    tft->setTextColor(ILI9341_GREEN);
+    tft->setTextSize(tsc);
+    tft->print(F("Benchmark Complete!"));
+  }
 
   delay(60 * 1000L);
 }
 
 void printnice(int32_t v)
 {
-  char	str[32] = { 0 };
+  char str[32] = {0};
   sprintf(str, "%lu", v);
   for (char *p = (str + strlen(str)) - 3; p > str; p -= 3)
   {
     memmove(p + 1, p, strlen(p) + 1);
     *p = ',';
-
   }
-  while (strlen(str) < 10)
+  while (strlen(str) < ds)
   {
     memmove(str + 1, str, strlen(str) + 1);
     *str = ' ';
@@ -256,7 +304,7 @@ void printnice(int32_t v)
   tft->println(str);
 }
 
-static inline uint32_t micros_start() __attribute__ ((always_inline));
+static inline uint32_t micros_start() __attribute__((always_inline));
 static inline uint32_t micros_start()
 {
   uint8_t oms = millis();
@@ -292,35 +340,46 @@ uint32_t testText()
   tft->print(F("GREEN "));
   tft->setTextColor(tft->color565(0x00, 0x00, 0xff));
   tft->println(F("BLUE"));
-  tft->setTextColor(ILI9341_CYAN);
-  tft->println(F("I implore thee,"));
-  tft->setTextSize(1);
-  tft->setTextColor(ILI9341_MAGENTA, ILI9341_WHITE);
-  tft->println(F("my foonting turlingdromes."));
-  tft->setTextColor(ILI9341_NAVY, ILI9341_WHITE);
-  tft->println(F("And hooptiously drangle me"));
-  tft->setTextColor(ILI9341_DARKGREEN, ILI9341_WHITE);
-  tft->println(F("with crinkly bindlewurdles,"));
-  tft->setTextColor(ILI9341_DARKCYAN, ILI9341_WHITE);
-  tft->println(F("Or I will rend thee"));
-  tft->setTextColor(ILI9341_MAROON, ILI9341_WHITE);
-  tft->println(F("in the gobberwarts"));
-  tft->setTextColor(ILI9341_PURPLE, ILI9341_WHITE);
-  tft->println(F("with my blurglecruncheon,"));
-  tft->setTextColor(ILI9341_OLIVE, ILI9341_WHITE);
-  tft->println(F("see if I don't!"));
+  tft->setTextSize(tsa);
   tft->setTextSize(3);
   tft->setTextColor(ILI9341_YELLOW);
   tft->println(1234.56);
   tft->setTextColor(ILI9341_WHITE);
-  tft->println(0xDEADBEEF, HEX);
-  if (h > 240) {
+  tft->println((w > 128) ? 0xDEADBEEF : 0xDEADBEE, HEX);
+  tft->setTextColor(ILI9341_CYAN, ILI9341_WHITE);
+  tft->println(F("Groop,"));
+  tft->setTextSize(tsc);
+  tft->setTextColor(ILI9341_MAGENTA, ILI9341_WHITE);
+  tft->println(F("I implore thee,"));
+  tft->setTextSize(1);
+  tft->setTextColor(ILI9341_NAVY, ILI9341_WHITE);
+  tft->println(F("my foonting turlingdromes."));
+  tft->setTextColor(ILI9341_DARKGREEN, ILI9341_WHITE);
+  tft->println(F("And hooptiously drangle me"));
+  tft->setTextColor(ILI9341_DARKCYAN, ILI9341_WHITE);
+  tft->println(F("with crinkly bindlewurdles,"));
+  tft->setTextColor(ILI9341_MAROON, ILI9341_WHITE);
+  tft->println(F("Or I will rend thee"));
+  tft->setTextColor(ILI9341_PURPLE, ILI9341_WHITE);
+  tft->println(F("in the gobberwartsb"));
+  tft->setTextColor(ILI9341_OLIVE, ILI9341_WHITE);
+  tft->println(F("with my blurglecruncheon,"));
+  tft->setTextColor(ILI9341_DARKGREY, ILI9341_WHITE);
+  tft->println(F("see if I don't!"));
+  if (h > 160)
+  {
     tft->setTextColor(ILI9341_ORANGE);
     tft->setTextSize(4);
     tft->println(F("Size 4"));
+  }
+  if (h > 220)
+  {
     tft->setTextColor(ILI9341_GREENYELLOW);
     tft->setTextSize(5);
     tft->println(F("Size 5"));
+  }
+  if (h > 240)
+  {
     tft->setTextColor(ILI9341_PINK);
     tft->setTextSize(6);
     tft->println(F("Size 6"));
@@ -345,11 +404,10 @@ uint32_t testPixels()
   return micros() - start;
 }
 
-
 uint32_t testLines(uint16_t color)
 {
   uint32_t start, t;
-  int32_t	x1, y1, x2, y2;
+  int32_t x1, y1, x2, y2;
 
   x1 = y1 = 0;
   y2 = h - 1;
@@ -527,13 +585,14 @@ uint32_t testFilledTriangles()
 
   start = micros_start();
 
-  for (i = cn1; i > 10; i -= 5) {
+  for (i = cn1; i > 10; i -= 5)
+  {
     start = micros_start();
     tft->fillTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i,
-                     tft->color565(0, i, i));
+                      tft->color565(0, i, i));
     t += micros() - start;
     tft->drawTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i,
-                     tft->color565(i, i, 0));
+                      tft->color565(i, i, 0));
   }
 
   return t;
@@ -549,10 +608,10 @@ uint32_t testTriangles()
   for (i = 0; i < cn; i += 5)
   {
     tft->drawTriangle(
-      cx1, cy1 - i, // peak
-      cx1 - i, cy1 + i, // bottom left
-      cx1 + i, cy1 + i, // bottom right
-      tft->color565(0, 0, i));
+        cx1, cy1 - i,     // peak
+        cx1 - i, cy1 + i, // bottom left
+        cx1 + i, cy1 + i, // bottom right
+        tft->color565(0, 0, i));
   }
 
   return micros() - start;
