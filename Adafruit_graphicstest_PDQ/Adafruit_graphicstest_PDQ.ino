@@ -10,8 +10,8 @@
 
 #if defined(ESP32)
 #define TFT_CS 5
-#define TFT_DC 16
-#define TFT_RST 17
+#define TFT_DC 27
+#define TFT_RST 33
 #define TFT_BL 22
 #elif defined(ESP8266)
 #define TFT_CS 15
