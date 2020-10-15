@@ -13,18 +13,10 @@
 #define TFT_MISO 27
 #define SPI_FREQUENCY 40000000
 
-#include <Arduino_SWSPI.h>
-#include <Arduino_HWSPI.h>
-#include <Arduino_ESP32SPI.h>
-#include <Arduino_ESP32SPI_DMA.h>
-#include <Arduino_GFX.h>     // Core graphics library
-#include <Arduino_Display.h> // Various display driver
+#include <LovyanGFX.hpp>
 
-// Arduino_DataBus *bus = new Arduino_SWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-// Arduino_DataBus *bus = new Arduino_ESP32SPI_DMA(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, TFT_RST);
+static LGFX lcd;
+static lgfx::Panel_ILI9341 panel;
 
 uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
 
@@ -38,10 +30,20 @@ void setup()
 
   Serial.println("Arduino_GFX library Test!");
 
-  gfx->begin(SPI_FREQUENCY);
+  panel.freq_write = SPI_FREQUENCY;
+  panel.freq_fill = SPI_FREQUENCY;
+  panel.spi_cs = TFT_CS;
+  panel.spi_dc = TFT_DC;
+  panel.gpio_rst = TFT_RST;
+  panel.gpio_bl = TFT_BL;
+  panel.panel_width = 240;
+  panel.panel_height = 320;
+  panel.rotation = 2;
+  lcd.setPanel(&panel);
+  lcd.init(TFT_SCLK, TFT_MISO, TFT_MOSI);
 
-  w = gfx->width();
-  h = gfx->height();
+  w = lcd.width();
+  h = lcd.height();
   n = min(w, h);
   n1 = n - 1;
   cx = w / 2;
@@ -121,7 +123,7 @@ void loop(void)
   int8_t d = 1;
   for (int32_t i = 0; i < h; i++)
   {
-    gfx->drawFastHLine(0, i, w, c);
+    lcd.drawFastHLine(0, i, w, c);
     c += d;
     if (c <= 4 || c >= 11)
     {
@@ -129,22 +131,22 @@ void loop(void)
     }
   }
 
-  gfx->setCursor(0, 0);
+  lcd.setCursor(0, 0);
 
-  gfx->setTextSize(2);
-  gfx->setTextColor(MAGENTA);
-  gfx->println(F("Arduino GFX PDQ"));
+  lcd.setTextSize(2);
+  lcd.setTextColor(TFT_MAGENTA);
+  lcd.println(F("LovyanGFX PDQ"));
 
   if (h > w)
   {
-    gfx->setTextSize(1);
-    gfx->setTextColor(GREEN);
-    gfx->print(F("\nBenchmark       "));
-    gfx->setTextSize(2);
-    gfx->println(F("micro-secs"));
+    lcd.setTextSize(1);
+    lcd.setTextColor(TFT_GREEN);
+    lcd.print(F("\nBenchmark       "));
+    lcd.setTextSize(2);
+    lcd.println(F("micro-secs"));
   }
 
-  gfx->setTextSize(1);
+  lcd.setTextSize(1);
   printnice(F("Screen fill "), usecFillScreen);
   printnice(F("Text        "), usecText);
   printnice(F("Pixels      "), usecPixels);
@@ -163,15 +165,15 @@ void loop(void)
 
   if (h > w)
   {
-    gfx->setTextSize(2);
-    gfx->setTextColor(GREEN);
-    gfx->print(F("\nBenchmark Complete!"));
+    lcd.setTextSize(2);
+    lcd.setTextColor(TFT_GREEN);
+    lcd.print(F("\nBenchmark Complete!"));
   }
 
   delay(60 * 1000L);
 }
 
-void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clear)
+void serialOut(const __FlashStringHelper *item, uint32_t v, uint32_t d, bool clear)
 {
   Serial.print(item);
   if (v < 0)
@@ -185,21 +187,21 @@ void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clea
   delay(d);
   if (clear)
   {
-    gfx->fillScreen(BLACK);
+    lcd.fillScreen(TFT_BLACK);
   }
 }
 
 void printnice(const __FlashStringHelper *item, int32_t v)
 {
-  gfx->setTextSize(1);
-  gfx->setTextColor(CYAN);
-  gfx->print(item);
+  lcd.setTextSize(1);
+  lcd.setTextColor(TFT_CYAN);
+  lcd.print(item);
 
-  gfx->setTextSize(2);
-  gfx->setTextColor(YELLOW);
+  lcd.setTextSize(2);
+  lcd.setTextColor(TFT_YELLOW);
   if (v < 0)
   {
-    gfx->println(F("      N / A"));
+    lcd.println(F("      N / A"));
   }
   else
   {
@@ -215,7 +217,7 @@ void printnice(const __FlashStringHelper *item, int32_t v)
       memmove(str + 1, str, strlen(str) + 1);
       *str = ' ';
     }
-    gfx->println(str);
+    lcd.println(str);
   }
 }
 
@@ -223,11 +225,11 @@ int32_t testFillScreen()
 {
   uint32_t start = micros_start();
   // Shortened this tedious test!
-  gfx->fillScreen(WHITE);
-  gfx->fillScreen(RED);
-  gfx->fillScreen(GREEN);
-  gfx->fillScreen(BLUE);
-  gfx->fillScreen(BLACK);
+  lcd.fillScreen(TFT_WHITE);
+  lcd.fillScreen(TFT_RED);
+  lcd.fillScreen(TFT_GREEN);
+  lcd.fillScreen(TFT_BLUE);
+  lcd.fillScreen(TFT_BLACK);
 
   return micros() - start;
 }
@@ -235,85 +237,85 @@ int32_t testFillScreen()
 int32_t testText()
 {
   uint32_t start = micros_start();
-  gfx->setCursor(0, 0);
+  lcd.setCursor(0, 0);
 
-  gfx->setTextSize(1);
-  gfx->setTextColor(WHITE, BLACK);
-  gfx->println(F("Hello World!"));
+  lcd.setTextSize(1);
+  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.println(F("Hello World!"));
 
-  gfx->setTextSize(2);
-  gfx->setTextColor(gfx->color565(0xff, 0x00, 0x00));
-  gfx->print(F("RED "));
-  gfx->setTextColor(gfx->color565(0x00, 0xff, 0x00));
-  gfx->print(F("GREEN "));
-  gfx->setTextColor(gfx->color565(0x00, 0x00, 0xff));
-  gfx->println(F("BLUE"));
+  lcd.setTextSize(2);
+  lcd.setTextColor(lcd.color565(0xff, 0x00, 0x00));
+  lcd.print(F("RED   "));
+  lcd.setTextColor(lcd.color565(0x00, 0xff, 0x00));
+  lcd.print(F("GREEN "));
+  lcd.setTextColor(lcd.color565(0x00, 0x00, 0xff));
+  lcd.println(F("BLUE"));
 
-  gfx->setTextColor(YELLOW);
-  gfx->println(1234.56);
+  lcd.setTextColor(TFT_YELLOW);
+  lcd.println(1234.56);
 
-  gfx->setTextColor(WHITE);
-  gfx->println((w > 128) ? 0xDEADBEEF : 0xDEADBEE, HEX);
+  lcd.setTextColor(TFT_WHITE);
+  lcd.println((w > 128) ? 0xDEADBEEF : 0xDEADBEE, HEX);
 
-  gfx->setTextColor(CYAN, WHITE);
-  gfx->println(F("Groop,"));
+  lcd.setTextColor(TFT_CYAN, TFT_WHITE);
+  lcd.println(F("Groop,"));
 
-  gfx->setTextColor(MAGENTA, WHITE);
-  gfx->println(F("I implore thee,"));
+  lcd.setTextColor(TFT_MAGENTA, TFT_WHITE);
+  lcd.println(F("I implore thee,"));
 
-  gfx->setTextSize(1);
-  gfx->setTextColor(NAVY, WHITE);
-  gfx->println(F("my foonting turlingdromes."));
+  lcd.setTextSize(1);
+  lcd.setTextColor(TFT_NAVY, TFT_WHITE);
+  lcd.println(F("my foonting turlingdromes."));
 
-  gfx->setTextColor(DARKGREEN, WHITE);
-  gfx->println(F("And hooptiously drangle me"));
+  lcd.setTextColor(TFT_DARKGREEN, TFT_WHITE);
+  lcd.println(F("And hooptiously drangle me"));
 
-  gfx->setTextColor(DARKCYAN, WHITE);
-  gfx->println(F("with crinkly bindlewurdles,"));
+  lcd.setTextColor(TFT_DARKCYAN, TFT_WHITE);
+  lcd.println(F("with crinkly bindlewurdles,"));
 
-  gfx->setTextColor(MAROON, WHITE);
-  gfx->println(F("Or I will rend thee"));
+  lcd.setTextColor(TFT_MAROON, TFT_WHITE);
+  lcd.println(F("Or I will rend thee"));
 
-  gfx->setTextColor(PURPLE, WHITE);
-  gfx->println(F("in the gobberwartsb"));
+  lcd.setTextColor(TFT_PURPLE, TFT_WHITE);
+  lcd.println(F("in the gobberwartsb"));
 
-  gfx->setTextColor(OLIVE, WHITE);
-  gfx->println(F("with my blurglecruncheon,"));
+  lcd.setTextColor(TFT_OLIVE, TFT_WHITE);
+  lcd.println(F("with my blurglecruncheon,"));
 
-  gfx->setTextColor(DARKGREY, WHITE);
-  gfx->println(F("see if I don't!"));
+  lcd.setTextColor(TFT_DARKGREY, TFT_WHITE);
+  lcd.println(F("see if I don't!"));
 
-  gfx->setTextSize(2);
-  gfx->setTextColor(RED);
-  gfx->println(F("Size 2"));
+  lcd.setTextSize(2);
+  lcd.setTextColor(TFT_RED);
+  lcd.println(F("Size 2"));
 
-  gfx->setTextSize(3);
-  gfx->setTextColor(ORANGE);
-  gfx->println(F("Size 3"));
+  lcd.setTextSize(3);
+  lcd.setTextColor(TFT_ORANGE);
+  lcd.println(F("Size 3"));
 
-  gfx->setTextSize(4);
-  gfx->setTextColor(YELLOW);
-  gfx->println(F("Size 4"));
+  lcd.setTextSize(4);
+  lcd.setTextColor(TFT_YELLOW);
+  lcd.println(F("Size 4"));
 
-  gfx->setTextSize(5);
-  gfx->setTextColor(GREENYELLOW);
-  gfx->println(F("Size 5"));
+  lcd.setTextSize(5);
+  lcd.setTextColor(TFT_GREENYELLOW);
+  lcd.println(F("Size 5"));
 
-  gfx->setTextSize(6);
-  gfx->setTextColor(GREEN);
-  gfx->println(F("Size 6"));
+  lcd.setTextSize(6);
+  lcd.setTextColor(TFT_GREEN);
+  lcd.println(F("Size 6"));
 
-  gfx->setTextSize(7);
-  gfx->setTextColor(BLUE);
-  gfx->println(F("Size 7"));
+  lcd.setTextSize(7);
+  lcd.setTextColor(TFT_BLUE);
+  lcd.println(F("Size 7"));
 
-  gfx->setTextSize(8);
-  gfx->setTextColor(PURPLE);
-  gfx->println(F("Size 8"));
+  lcd.setTextSize(8);
+  lcd.setTextColor(TFT_PURPLE);
+  lcd.println(F("Size 8"));
 
-  gfx->setTextSize(9);
-  gfx->setTextColor(PINK);
-  gfx->println(F("Size 9"));
+  lcd.setTextSize(9);
+  lcd.setTextColor(TFT_PINK);
+  lcd.println(F("Size 9"));
 
   return micros() - start;
 }
@@ -326,8 +328,11 @@ int32_t testPixels()
   {
     for (uint16_t x = 0; x < w; x++)
     {
-      gfx->drawPixel(x, y, gfx->color565(x << 3, y << 3, x * y));
+      lcd.drawPixel(x, y, lcd.color565(x << 3, y << 3, x * y));
     }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
   }
 
   return micros() - start;
@@ -345,14 +350,14 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x2 = w - 1;
 
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x1 = w - 1;
@@ -361,13 +366,13 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x1 = 0;
@@ -376,12 +381,12 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
   x2 = w - 1;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x1 = w - 1;
@@ -390,13 +395,13 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    gfx->drawLine(x1, y1, x2, y2, BLUE);
+    lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
 
   return micros() - start;
@@ -411,11 +416,11 @@ int32_t testFastLines()
 
   for (y = 0; y < h; y += 5)
   {
-    gfx->drawFastHLine(0, y, w, RED);
+    lcd.drawFastHLine(0, y, w, TFT_RED);
   }
   for (x = 0; x < w; x += 5)
   {
-    gfx->drawFastVLine(x, 0, h, BLUE);
+    lcd.drawFastVLine(x, 0, h, TFT_BLUE);
   }
 
   return micros() - start;
@@ -432,7 +437,7 @@ int32_t testFilledRects()
   {
     i2 = i / 2;
 
-    gfx->fillRect(cx - i2, cy - i2, i, i, gfx->color565(i, i, 0));
+    lcd.fillRect(cx - i2, cy - i2, i, i, lcd.color565(i, i, 0));
   }
 
   return micros() - start;
@@ -447,7 +452,7 @@ int32_t testRects()
   for (i = 2; i < n; i += 6)
   {
     i2 = i / 2;
-    gfx->drawRect(cx - i2, cy - i2, i, i, GREEN);
+    lcd.drawRect(cx - i2, cy - i2, i, i, TFT_GREEN);
   }
 
   return micros() - start;
@@ -464,7 +469,7 @@ int32_t testFilledCircles(uint8_t radius)
   {
     for (y = radius; y < h; y += r2)
     {
-      gfx->fillCircle(x, y, radius, MAGENTA);
+      lcd.fillCircle(x, y, radius, TFT_MAGENTA);
     }
   }
 
@@ -486,7 +491,7 @@ int32_t testCircles(uint8_t radius)
   {
     for (y = 0; y < h1; y += r2)
     {
-      gfx->drawCircle(x, y, radius, WHITE);
+      lcd.drawCircle(x, y, radius, TFT_WHITE);
     }
   }
 
@@ -500,7 +505,7 @@ int32_t testFillArcs()
 
   for (i = 6; i < cn; i += 6)
   {
-    gfx->fillArc(cx1, cy1, i, i - 3, 0, i * r, RED);
+    lcd.fillArc(cx1, cy1, i, i - 3, 0, i * r, TFT_RED);
   }
 
   return micros() - start;
@@ -513,7 +518,7 @@ int32_t testArcs()
 
   for (i = 6; i < cn; i += 6)
   {
-    gfx->drawArc(cx1, cy1, i, i - 3, 0, i * r, WHITE);
+    lcd.drawArc(cx1, cy1, i, i - 3, 0, i * r, TFT_WHITE);
   }
 
   return micros() - start;
@@ -528,8 +533,8 @@ int32_t testFilledTriangles()
 
   for (i = cn1; i > 10; i -= 5)
   {
-    gfx->fillTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i,
-                      gfx->color565(0, i, i));
+    lcd.fillTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i,
+                     lcd.color565(0, i, i));
   }
 
   return micros() - start;
@@ -544,11 +549,11 @@ int32_t testTriangles()
 
   for (i = 0; i < cn; i += 5)
   {
-    gfx->drawTriangle(
+    lcd.drawTriangle(
         cx1, cy1 - i,     // peak
         cx1 - i, cy1 + i, // bottom left
         cx1 + i, cy1 + i, // bottom right
-        gfx->color565(0, 0, i));
+        lcd.color565(0, 0, i));
   }
 
   return micros() - start;
@@ -564,7 +569,7 @@ int32_t testFilledRoundRects()
   for (i = n1; i > 20; i -= 6)
   {
     i2 = i / 2;
-    gfx->fillRoundRect(cx - i2, cy - i2, i, i, i / 8, gfx->color565(0, i, 0));
+    lcd.fillRoundRect(cx - i2, cy - i2, i, i, i / 8, lcd.color565(0, i, 0));
   }
 
   return micros() - start;
@@ -580,7 +585,7 @@ int32_t testRoundRects()
   for (i = 20; i < n1; i += 6)
   {
     i2 = i / 2;
-    gfx->drawRoundRect(cx - i2, cy - i2, i, i, i / 8, gfx->color565(i, 0, 0));
+    lcd.drawRoundRect(cx - i2, cy - i2, i, i, i / 8, lcd.color565(i, 0, 0));
   }
 
   return micros() - start;

@@ -14,11 +14,11 @@
 #define SPI_FREQUENCY 40000000
 
 #include <SPI.h>
-#include <UTFT.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
 
-UTFT tft(ILI9341_S5P, TFT_CS, TFT_RST, TFT_DC);
-extern uint8_t SmallFont[];
-extern uint8_t BigFont[];
+// Use hardware SPI
+Adafruit_ILI9341 *tft = new Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
 
@@ -30,14 +30,13 @@ void setup()
     // wait and do nothing
   }
 
-  Serial.println("UTFT-ESP library Test!");
+  Serial.println("Adafruit GFX library Test!");
 
   SPI.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, TFT_CS);
-  tft.InitLCD(PORTRAIT);
-  SPI.setFrequency(SPI_FREQUENCY);
+  tft->begin(SPI_FREQUENCY); /* specify data bus speed */
 
-  w = 240;
-  h = 320;
+  w = tft->width();
+  h = tft->height();
   n = min(w, h);
   n1 = n - 1;
   cx = w / 2;
@@ -94,16 +93,16 @@ void loop(void)
   serialOut(F("Circles (outline)\t"), usecCircles, 100, true);
 
   int32_t usecFilledArcs = -1; // testFillArcs();
-  serialOut(F("Arcs (filled)\t"), usecFilledArcs, 0, false);
+  serialOut(F("Arcs (filled)\t"), usecFilledArcs, 100, false);
 
   int32_t usecArcs = -1; // testArcs();
-  serialOut(F("Arcs (outline)\t"), usecArcs, 0, false);
+  serialOut(F("Arcs (outline)\t"), usecArcs, 100, true);
 
-  int32_t usecFilledTrangles = -1; // testFilledTriangles();
-  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 0, false);
+  int32_t usecFilledTrangles = testFilledTriangles();
+  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
 
-  int32_t usecTriangles = -1; // testTriangles();
-  serialOut(F("Triangles (outline)\t"), usecTriangles, 0, false);
+  int32_t usecTriangles = testTriangles();
+  serialOut(F("Triangles (outline)\t"), usecTriangles, 100, true);
 
   int32_t usecFilledRoundRects = testFilledRoundRects();
   serialOut(F("Rounded rects (filled)\t"), usecFilledRoundRects, 100, false);
@@ -117,8 +116,7 @@ void loop(void)
   int8_t d = 1;
   for (int32_t i = 0; i < h; i++)
   {
-    tft.setColor(c);
-    tft.drawHLine(0, i, w);
+    tft->drawFastHLine(0, i, w, c);
     c += d;
     if (c <= 4 || c >= 11)
     {
@@ -126,62 +124,43 @@ void loop(void)
     }
   }
 
-  uint16_t y = 0;
+  tft->setCursor(0, 0);
 
-  tft.setFont(BigFont);
-  tft.setColor(VGA_PURPLE);
-  tft.setBackColor(VGA_TRANSPARENT);
-  tft.print(F("UTFT-ESP PDQ"), 0, y);
+  tft->setTextSize(2);
+  tft->setTextColor(ILI9341_MAGENTA);
+  tft->println(F("Adafruit GFX PDQ"));
 
   if (h > w)
   {
-    y += 28;
-    tft.setFont(SmallFont);
-    tft.setColor(VGA_GREEN);
-    tft.print(F("Benchmark"), 0, y);
-    tft.setFont(BigFont);
-    tft.setColor(VGA_GREEN);
-    tft.print(F("micro-secs"), 81, y);
+    tft->setTextSize(1);
+    tft->setTextColor(ILI9341_GREEN);
+    tft->print(F("\nBenchmark       "));
+    tft->setTextSize(2);
+    tft->println(F("micro-secs"));
   }
 
-  y += 28;
-  tft.setFont(SmallFont);
-  printnice(F("Screen fill "), usecFillScreen, y);
-  y += 14;
-  printnice(F("Text        "), usecText, y);
-  y += 14;
-  printnice(F("Pixels      "), usecPixels, y);
-  y += 14;
-  printnice(F("Lines       "), usecLines, y);
-  y += 14;
-  printnice(F("H/V Lines   "), usecFastLines, y);
-  y += 14;
-  printnice(F("Rectangles F"), usecFilledRects, y);
-  y += 14;
-  printnice(F("Rectangles  "), usecRects, y);
-  y += 14;
-  printnice(F("Circles F   "), usecFilledCircles, y);
-  y += 14;
-  printnice(F("Circles     "), usecCircles, y);
-  y += 14;
-  printnice(F("Arcs F      "), usecFilledArcs, y);
-  y += 14;
-  printnice(F("Arcs        "), usecArcs, y);
-  y += 14;
-  printnice(F("Triangles F "), usecFilledTrangles, y);
-  y += 14;
-  printnice(F("Triangles   "), usecTriangles, y);
-  y += 14;
-  printnice(F("RoundRects F"), usecFilledRoundRects, y);
-  y += 14;
-  printnice(F("RoundRects  "), usecRoundRects, y);
+  tft->setTextSize(1);
+  printnice(F("Screen fill "), usecFillScreen);
+  printnice(F("Text        "), usecText);
+  printnice(F("Pixels      "), usecPixels);
+  printnice(F("Lines       "), usecLines);
+  printnice(F("H/V Lines   "), usecFastLines);
+  printnice(F("Rectangles F"), usecFilledRects);
+  printnice(F("Rectangles  "), usecRects);
+  printnice(F("Circles F   "), usecFilledCircles);
+  printnice(F("Circles     "), usecCircles);
+  printnice(F("Arcs F      "), usecFilledArcs);
+  printnice(F("Arcs        "), usecArcs);
+  printnice(F("Triangles F "), usecFilledTrangles);
+  printnice(F("Triangles   "), usecTriangles);
+  printnice(F("RoundRects F"), usecFilledRoundRects);
+  printnice(F("RoundRects  "), usecRoundRects);
 
   if (h > w)
   {
-    y += 28;
-    tft.setFont(BigFont);
-    tft.setColor(VGA_GREEN);
-    tft.print(F("Benchmark Complete!"), 0, y);
+    tft->setTextSize(2);
+    tft->setTextColor(ILI9341_GREEN);
+    tft->print(F("\nBenchmark Complete!"));
   }
 
   delay(60 * 1000L);
@@ -201,22 +180,21 @@ void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clea
   delay(d);
   if (clear)
   {
-    tft.clrScr();
+    tft->fillScreen(ILI9341_BLACK);
   }
 }
 
-void printnice(const __FlashStringHelper *item, int32_t v, uint32_t y)
+void printnice(const __FlashStringHelper *item, int32_t v)
 {
+  tft->setTextSize(1);
+  tft->setTextColor(ILI9341_CYAN);
+  tft->print(item);
 
-  tft.setFont(SmallFont);
-  tft.setColor(VGA_AQUA);
-  tft.print(item, 0, y);
-
-  tft.setFont(BigFont);
-  tft.setColor(VGA_YELLOW);
+  tft->setTextSize(2);
+  tft->setTextColor(ILI9341_YELLOW);
   if (v < 0)
   {
-    tft.print(F("N / A"), 145, y);
+    tft->println(F("      N / A"));
   }
   else
   {
@@ -232,7 +210,7 @@ void printnice(const __FlashStringHelper *item, int32_t v, uint32_t y)
       memmove(str + 1, str, strlen(str) + 1);
       *str = ' ';
     }
-    tft.print(str, 49, y);
+    tft->println(str);
   }
 }
 
@@ -240,87 +218,97 @@ int32_t testFillScreen()
 {
   uint32_t start = micros_start();
   // Shortened this tedious test!
-  tft.fillScr(VGA_WHITE);
-  tft.fillScr(VGA_RED);
-  tft.fillScr(VGA_GREEN);
-  tft.fillScr(VGA_BLUE);
-  tft.fillScr(VGA_BLACK);
+  tft->fillScreen(ILI9341_WHITE);
+  tft->fillScreen(ILI9341_RED);
+  tft->fillScreen(ILI9341_GREEN);
+  tft->fillScreen(ILI9341_BLUE);
+  tft->fillScreen(ILI9341_BLACK);
 
   return micros() - start;
 }
 
 int32_t testText()
 {
-  uint32_t y = 0;
   uint32_t start = micros_start();
-  tft.setFont(SmallFont);
-  tft.setColor(VGA_WHITE);
-  tft.setBackColor(VGA_BLACK);
-  tft.print(F("Hello World!"), 0, y);
+  tft->setCursor(0, 0);
 
-  y += 12;
-  tft.setFont(BigFont);
-  tft.setColor(0xff, 0x00, 0x00);
-  tft.setBackColor(VGA_TRANSPARENT);
-  tft.print(F("RED"), 0, y);
-  tft.setColor(0x00, 0xff, 0x00);
-  tft.print(F("GREEN"), 80, y);
-  tft.setColor(0x00, 0x00, 0xff);
-  tft.print(F("BLUE"), 160, y);
+  tft->setTextSize(1);
+  tft->setTextColor(ILI9341_WHITE, ILI9341_BLACK);
+  tft->println(F("Hello World!"));
 
-  y += 16;
-  tft.setColor(VGA_YELLOW);
-  tft.printNumF(1234.56, 2, 0, y);
+  tft->setTextSize(2);
+  tft->setTextColor(tft->color565(0xff, 0x00, 0x00));
+  tft->print(F("RED "));
+  tft->setTextColor(tft->color565(0x00, 0xff, 0x00));
+  tft->print(F("GREEN "));
+  tft->setTextColor(tft->color565(0x00, 0x00, 0xff));
+  tft->println(F("BLUE"));
 
-  y += 16;
-  tft.setColor(VGA_WHITE);
-  char str[10] = {0};
-  sprintf(str, "%X", 0xDEADBEEF);
-  tft.print(str, 0, y);
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->println(1234.56);
 
-  y += 16;
-  tft.setColor(VGA_AQUA);
-  tft.setBackColor(VGA_WHITE);
-  tft.print(F("Groop"), 0, y);
+  tft->setTextColor(ILI9341_WHITE);
+  tft->println((w > 128) ? 0xDEADBEEF : 0xDEADBEE, HEX);
 
-  y += 16;
-  tft.setColor(VGA_PURPLE);
-  tft.print(F("I implore thee,"), 0, y);
+  tft->setTextColor(ILI9341_CYAN, ILI9341_WHITE);
+  tft->println(F("Groop,"));
 
-  y += 16;
-  tft.setFont(SmallFont);
-  tft.setColor(VGA_BLUE);
-  tft.print(F("my foonting turlingdromes."), 0, y);
+  tft->setTextColor(ILI9341_MAGENTA, ILI9341_WHITE);
+  tft->println(F("I implore thee,"));
 
-  y += 12;
-  tft.setColor(VGA_GREEN);
-  tft.print(F("And hooptiously drangle me"), 0, y);
+  tft->setTextSize(1);
+  tft->setTextColor(ILI9341_NAVY, ILI9341_WHITE);
+  tft->println(F("my foonting turlingdromes."));
 
-  y += 12;
-  tft.setColor(VGA_AQUA);
-  tft.print(F("with crinkly bindlewurdles,"), 0, y);
+  tft->setTextColor(ILI9341_DARKGREEN, ILI9341_WHITE);
+  tft->println(F("And hooptiously drangle me"));
 
-  y += 12;
-  tft.setColor(VGA_YELLOW);
-  tft.print(F("Or I will rend thee"), 0, y);
+  tft->setTextColor(ILI9341_DARKCYAN, ILI9341_WHITE);
+  tft->println(F("with crinkly bindlewurdles,"));
 
-  y += 12;
-  tft.setColor(VGA_RED);
-  tft.print(F("in the gobberwarts"), 0, y);
+  tft->setTextColor(ILI9341_MAROON, ILI9341_WHITE);
+  tft->println(F("Or I will rend thee"));
 
-  y += 12;
-  tft.setColor(VGA_PURPLE);
-  tft.print(F("with my blurglecruncheon,"), 0, y);
+  tft->setTextColor(ILI9341_PURPLE, ILI9341_WHITE);
+  tft->println(F("in the gobberwartsb"));
 
-  y += 12;
-  tft.setColor(VGA_BLUE);
-  tft.print(F("see if I don't!"), 0, y);
+  tft->setTextColor(ILI9341_OLIVE, ILI9341_WHITE);
+  tft->println(F("with my blurglecruncheon,"));
 
-  y += 12;
-  tft.setFont(BigFont);
-  tft.setColor(VGA_GREEN);
-  tft.setBackColor(VGA_TRANSPARENT);
-  tft.print(F("Woot!"), 0, y);
+  tft->setTextColor(ILI9341_DARKGREY, ILI9341_WHITE);
+  tft->println(F("see if I don't!"));
+
+  tft->setTextSize(2);
+  tft->setTextColor(ILI9341_RED);
+  tft->println(F("Size 2"));
+
+  tft->setTextSize(3);
+  tft->setTextColor(ILI9341_ORANGE);
+  tft->println(F("Size 3"));
+
+  tft->setTextSize(4);
+  tft->setTextColor(ILI9341_YELLOW);
+  tft->println(F("Size 4"));
+
+  tft->setTextSize(5);
+  tft->setTextColor(ILI9341_GREENYELLOW);
+  tft->println(F("Size 5"));
+
+  tft->setTextSize(6);
+  tft->setTextColor(ILI9341_GREEN);
+  tft->println(F("Size 6"));
+
+  tft->setTextSize(7);
+  tft->setTextColor(ILI9341_BLUE);
+  tft->println(F("Size 7"));
+
+  tft->setTextSize(8);
+  tft->setTextColor(ILI9341_PURPLE);
+  tft->println(F("Size 8"));
+
+  tft->setTextSize(9);
+  tft->setTextColor(ILI9341_PINK);
+  tft->println(F("Size 9"));
 
   return micros() - start;
 }
@@ -333,8 +321,7 @@ int32_t testPixels()
   {
     for (uint16_t x = 0; x < w; x++)
     {
-      tft.setColor(x << 3, y << 3, x * y);
-      tft.drawPixel(x, y);
+      tft->drawPixel(x, y, tft->color565(x << 3, y << 3, x * y));
     }
   }
 
@@ -346,8 +333,6 @@ int32_t testLines()
   uint32_t start;
   int32_t x1, y1, x2, y2;
 
-  tft.setColor(VGA_BLUE);
-
   x1 = y1 = 0;
   y2 = h - 1;
 
@@ -355,14 +340,14 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x2 = w - 1;
 
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x1 = w - 1;
@@ -371,13 +356,13 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x1 = 0;
@@ -386,12 +371,12 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
   x2 = w - 1;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x1 = w - 1;
@@ -400,13 +385,13 @@ int32_t testLines()
 
   for (x2 = 0; x2 < w; x2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
-    tft.drawLine(x1, y1, x2, y2);
+    tft->drawLine(x1, y1, x2, y2, ILI9341_BLUE);
   }
 
   return micros() - start;
@@ -419,15 +404,13 @@ int32_t testFastLines()
 
   start = micros_start();
 
-  tft.setColor(VGA_RED);
   for (y = 0; y < h; y += 5)
   {
-    tft.drawHLine(0, y, w);
+    tft->drawFastHLine(0, y, w, ILI9341_RED);
   }
-  tft.setColor(VGA_BLUE);
   for (x = 0; x < w; x += 5)
   {
-    tft.drawVLine(x, 0, h);
+    tft->drawFastVLine(x, 0, h, ILI9341_BLUE);
   }
 
   return micros() - start;
@@ -444,10 +427,7 @@ int32_t testFilledRects()
   {
     i2 = i / 2;
 
-    start = micros_start();
-
-    tft.setColor(i, i, 0);
-    tft.fillRect(cx - i2, cy - i2, cx + i2 - 1, cy + i2 - 1);
+    tft->fillRect(cx - i2, cy - i2, i, i, tft->color565(i, i, 0));
   }
 
   return micros() - start;
@@ -459,12 +439,10 @@ int32_t testRects()
   int32_t i, i2;
 
   start = micros_start();
-
-  tft.setColor(VGA_GREEN);
   for (i = 2; i < n; i += 6)
   {
     i2 = i / 2;
-    tft.drawRect(cx - i2, cy - i2, cx + i2 - 1, cy + i2 - 1);
+    tft->drawRect(cx - i2, cy - i2, i, i, ILI9341_GREEN);
   }
 
   return micros() - start;
@@ -477,12 +455,11 @@ int32_t testFilledCircles(uint8_t radius)
 
   start = micros_start();
 
-  tft.setColor(VGA_PURPLE);
   for (x = radius; x < w; x += r2)
   {
     for (y = radius; y < h; y += r2)
     {
-      tft.fillCircle(x, y, radius);
+      tft->fillCircle(x, y, radius, ILI9341_MAGENTA);
     }
   }
 
@@ -500,13 +477,47 @@ int32_t testCircles(uint8_t radius)
   // intentional and does not affect the reported time.
   start = micros_start();
 
-  tft.setColor(VGA_WHITE);
   for (x = 0; x < w1; x += r2)
   {
     for (y = 0; y < h1; y += r2)
     {
-      tft.drawCircle(x, y, radius);
+      tft->drawCircle(x, y, radius, ILI9341_WHITE);
     }
+  }
+
+  return micros() - start;
+}
+
+int32_t testFilledTriangles()
+{
+  uint32_t start;
+  int32_t i;
+
+  start = micros_start();
+
+  for (i = cn1; i > 10; i -= 5)
+  {
+    tft->fillTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i,
+                      tft->color565(0, i, i));
+  }
+
+  return micros() - start;
+}
+
+int32_t testTriangles()
+{
+  uint32_t start;
+  int32_t i;
+
+  start = micros_start();
+
+  for (i = 0; i < cn; i += 5)
+  {
+    tft->drawTriangle(
+        cx1, cy1 - i,     // peak
+        cx1 - i, cy1 + i, // bottom left
+        cx1 + i, cy1 + i, // bottom right
+        tft->color565(0, 0, i));
   }
 
   return micros() - start;
@@ -522,8 +533,7 @@ int32_t testFilledRoundRects()
   for (i = n1; i > 20; i -= 6)
   {
     i2 = i / 2;
-    tft.setColor(0, i, 0);
-    tft.fillRoundRect(cx - i2, cy - i2, cx + i2 - 1, cy + i2 - 1);
+    tft->fillRoundRect(cx - i2, cy - i2, i, i, i / 8, tft->color565(0, i, 0));
   }
 
   return micros() - start;
@@ -539,8 +549,7 @@ int32_t testRoundRects()
   for (i = 20; i < n1; i += 6)
   {
     i2 = i / 2;
-    tft.setColor(i, 0, 0);
-    tft.drawRoundRect(cx - i2, cy - i2, cx + i2 - 1, cy + i2 - 1);
+    tft->drawRoundRect(cx - i2, cy - i2, i, i, i / 8, tft->color565(i, 0, 0));
   }
 
   return micros() - start;

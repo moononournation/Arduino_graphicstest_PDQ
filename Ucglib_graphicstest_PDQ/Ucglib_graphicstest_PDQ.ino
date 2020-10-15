@@ -4,261 +4,55 @@
   See end of file for original header text and MIT license info.
 */
 
-#include "SPI.h"
-#include "Ucglib.h"
+#define TFT_BL 23
+#define TFT_CS 5
+#define TFT_RST 18
+#define TFT_DC 19
+#define TFT_MOSI 21
+#define TFT_SCLK 22
+#define TFT_MISO 27
+#define SPI_FREQUENCY 40000000
 
-uint32_t w = 240;
-uint32_t h = 320;
-uint32_t n = min(w, h);
-uint32_t n1 = min(w, h) - 1;
-uint32_t cx = w / 2;
-uint32_t cy = h / 2;
-uint32_t cx1 = cx - 1;
-uint32_t cy1 = cy - 1;
-uint32_t cn = min(cx1, cy1);
-uint32_t cn1 = min(cx1, cy1) - 1;
+#include <SPI.h>
+#include <Ucglib.h>
 
-// Use hardware SPI
-Ucglib_ILI9341_18x240x320_HWSPI ucg(/*cd=*/ 16, /*cs=*/ 5, /*reset=*/ 17);
+Ucglib_ILI9341_18x240x320_HWSPI ucg(TFT_DC, TFT_CS, TFT_RST);
 
-unsigned long total = 0;
-unsigned long tn = 0;
-void setup() {
+uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+
+void setup()
+{
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println(""); Serial.println("");
+  while (!Serial)
+  {
+    // wait and do nothing
+  }
+
   Serial.println("Ucglib library Test!");
 
+  SPI.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, TFT_CS);
+  SPI.setFrequency(SPI_FREQUENCY);
   ucg.begin(UCG_FONT_MODE_TRANSPARENT);
-//  ucg.setRotate180();
-  ucg.setFont(ucg_font_7x13_mr);
-  ucg.clearScreen();
+  ucg.setFont(ucg_font_5x8_mr);
+
+  w = 240;
+  h = 320;
+  n = min(w, h);
+  n1 = n - 1;
+  cx = w / 2;
+  cy = h / 2;
+  cx1 = cx - 1;
+  cy1 = cy - 1;
+  cn = min(cx1, cy1);
+  cn1 = cn - 1;
+
+#ifdef TFT_BL
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
+#endif
 }
 
-void loop(void)
-{
-  Serial.println(F("Benchmark                Time (microseconds)"));
-
-  //	uint32_t usecHaD = testHaD();
-  //	Serial.print(F("HaD pushColor            "));
-  //	Serial.println(usecHaD);
-  //	delay(100);
-
-  uint32_t usecFillScreen = testFillScreen();
-  Serial.print(F("Screen fill              "));
-  Serial.println(usecFillScreen);
-  delay(100);
-
-  uint32_t usecText = testText();
-  Serial.print(F("Text                     "));
-  Serial.println(usecText);
-  delay(100);
-
-  uint32_t usecPixels = testPixels();
-  Serial.print(F("Pixels                   "));
-  Serial.println(usecPixels);
-  delay(100);
-
-  uint32_t usecLines = testLines();
-  Serial.print(F("Lines                    "));
-  Serial.println(usecLines);
-  delay(100);
-
-  uint32_t usecFastLines = testFastLines();
-  Serial.print(F("Horiz/Vert Lines         "));
-  Serial.println(usecFastLines);
-  delay(100);
-
-  uint32_t usecRects = testRects();
-  Serial.print(F("Rectangles (outline)     "));
-  Serial.println(usecRects);
-  delay(100);
-
-  uint32_t usecFilledRects = testFilledRects();
-  Serial.print(F("Rectangles (filled)      "));
-  Serial.println(usecFilledRects);
-  delay(100);
-
-  uint32_t usecFilledCircles = testFilledCircles(10);
-  Serial.print(F("Circles (filled)         "));
-  Serial.println(usecFilledCircles);
-  delay(100);
-
-  uint32_t usecCircles = testCircles(10);
-  Serial.print(F("Circles (outline)        "));
-  Serial.println(usecCircles);
-  delay(100);
-
-//  uint32_t usecTriangles = testTriangles();
-//  Serial.print(F("Triangles (outline)      "));
-//  Serial.println(usecTriangles);
-//  delay(100);
-
-  uint32_t usecFilledTrangles = testFilledTriangles();
-  Serial.print(F("Triangles (filled)       "));
-  Serial.println(usecFilledTrangles);
-  delay(100);
-
-  uint32_t usecRoundRects = testRoundRects();
-  Serial.print(F("Rounded rects (outline)  "));
-  Serial.println(usecRoundRects);
-  delay(100);
-
-  uint32_t usedFilledRoundRects = testFilledRoundRects();
-  Serial.print(F("Rounded rects (filled)   "));
-  Serial.println(usedFilledRoundRects);
-  delay(100);
-
-  Serial.println(F("Done!"));
-
-  uint16_t c = 4;
-  int8_t d = 1;
-  for (int32_t i = 0; i < h; i++)
-  {
-    ucg.setColor(0, 0, c * 8);
-    ucg.drawHLine(0, i, w);
-    c += d;
-    if (c <= 4 || c >= 11)
-      d = -d;
-  }
-
-  uint16_t y = 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(255, 0, 255); // MAGENTA
-  ucg.print(F("Ucglib PDQ test"));
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 0); // GREEN
-  ucg.print(F("Benchmark             microseconds"));
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("HaD pushColor      "));
-  ucg.setColor(255, 255, 0); // YELLOW
-//	printnice(usecHaD);
-  ucg.print(F("          N/A"));
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Screen fill        "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecFillScreen);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Text               "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecText);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Pixels             "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecPixels);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Lines              "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecLines);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Horiz/Vert Lines   "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecFastLines);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Rectangles         "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecRects);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Rectangles-filled  "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecFilledRects);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Circles            "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecCircles);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Circles-filled     "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecFilledCircles);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Triangles          "));
-  ucg.setColor(255, 255, 0); // YELLOW
-//  printnice(usecTriangles);
-  ucg.print(F("          N/A"));
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Triangles-filled   "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecFilledTrangles);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Rounded rects      "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usecRoundRects);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 255); // CYAN
-  ucg.print(F("Rounded rects-fill "));
-  ucg.setColor(255, 255, 0); // YELLOW
-  printnice(usedFilledRoundRects);
-
-  y += 18;
-  ucg.setPrintPos(0, y);
-  ucg.setColor(0, 255, 0); // GREEN
-  ucg.print(F("Benchmark Complete!"));
-
-  delay(60 * 1000L);
-}
-
-void printnice(int32_t v)
-{
-  char	str[32] = { 0 };
-  sprintf(str, "%lu", v);
-  for (char *p = (str + strlen(str)) - 3; p > str; p -= 3)
-  {
-    memmove(p + 1, p, strlen(p) + 1);
-    *p = ',';
-
-  }
-  while (strlen(str) < 15)
-  {
-    memmove(str + 1, str, strlen(str) + 1);
-    *str = ' ';
-  }
-  ucg.print(str);
-}
-
-static inline uint32_t micros_start() __attribute__ ((always_inline));
+static inline uint32_t micros_start() __attribute__((always_inline));
 static inline uint32_t micros_start()
 {
   uint8_t oms = millis();
@@ -267,7 +61,188 @@ static inline uint32_t micros_start()
   return micros();
 }
 
-uint32_t testFillScreen()
+void loop(void)
+{
+  Serial.println(F("Benchmark\tmicro-secs"));
+
+  int32_t usecFillScreen = testFillScreen();
+  serialOut(F("Screen fill\t"), usecFillScreen, 100, true);
+
+  int32_t usecText = testText();
+  serialOut(F("Text\t"), usecText, 3000, true);
+
+  int32_t usecPixels = testPixels();
+  serialOut(F("Pixels\t"), usecPixels, 100, true);
+
+  int32_t usecLines = testLines();
+  serialOut(F("Lines\t"), usecLines, 100, true);
+
+  int32_t usecFastLines = testFastLines();
+  serialOut(F("Horiz/Vert Lines\t"), usecFastLines, 100, true);
+
+  int32_t usecFilledRects = testFilledRects();
+  serialOut(F("Rectangles (filled)\t"), usecFilledRects, 100, false);
+
+  int32_t usecRects = testRects();
+  serialOut(F("Rectangles (outline)\t"), usecRects, 100, true);
+
+  int32_t usecFilledCircles = testFilledCircles(10);
+  serialOut(F("Circles (filled)\t"), usecFilledCircles, 100, false);
+
+  int32_t usecCircles = testCircles(10);
+  serialOut(F("Circles (outline)\t"), usecCircles, 100, true);
+
+  int32_t usecFilledArcs = -1; // testFillArcs();
+  serialOut(F("Arcs (filled)\t"), usecFilledArcs, 0, false);
+
+  int32_t usecArcs = -1; // testArcs();
+  serialOut(F("Arcs (outline)\t"), usecArcs, 0, false);
+
+  int32_t usecFilledTrangles = testFilledTriangles();
+  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
+
+  int32_t usecTriangles = -1; // testTriangles();
+  serialOut(F("Triangles (outline)\t"), usecTriangles, 0, true);
+
+  int32_t usecFilledRoundRects = testFilledRoundRects();
+  serialOut(F("Rounded rects (filled)\t"), usecFilledRoundRects, 100, false);
+
+  int32_t usecRoundRects = testRoundRects();
+  serialOut(F("Rounded rects (outline)\t"), usecRoundRects, 100, true);
+
+  Serial.println(F("Done!"));
+
+  uint16_t c = 4;
+  int8_t d = 1;
+  for (int32_t i = 0; i < h; i++)
+  {
+    ucg.setColor(0, 0, c);
+    ucg.drawHLine(0, i, w);
+    c += d;
+    if (c <= 4 || c >= 11)
+    {
+      d = -d;
+    }
+  }
+
+  uint16_t y = 12;
+
+  ucg.setScale2x2();
+  ucg.setColor(255, 0, 255); // MAGENTA
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(F("Ucglib PDQ"));
+
+  if (h > w)
+  {
+    ucg.undoScale();
+    y += 9;
+    ucg.setColor(0, 255, 0); // GREEN
+    ucg.setPrintPos(0, y);
+    ucg.print(F("Benchmark       "));
+    y += 9;
+    ucg.setScale2x2();
+    ucg.setPrintPos(70, y / 2);
+    ucg.print(F("micro-secs"));
+  }
+
+  y += 9;
+  ucg.undoScale();
+  printnice(F("Screen fill "), usecFillScreen, y);
+  y += 18;
+  printnice(F("Text        "), usecText, y);
+  y += 18;
+  printnice(F("Pixels      "), usecPixels, y);
+  y += 18;
+  printnice(F("Lines       "), usecLines, y);
+  y += 18;
+  printnice(F("H/V Lines   "), usecFastLines, y);
+  y += 18;
+  printnice(F("Rectangles F"), usecFilledRects, y);
+  y += 18;
+  printnice(F("Rectangles  "), usecRects, y);
+  y += 18;
+  printnice(F("Circles F   "), usecFilledCircles, y);
+  y += 18;
+  printnice(F("Circles     "), usecCircles, y);
+  y += 18;
+  printnice(F("Arcs F      "), usecFilledArcs, y);
+  y += 18;
+  printnice(F("Arcs        "), usecArcs, y);
+  y += 18;
+  printnice(F("Triangles F "), usecFilledTrangles, y);
+  y += 18;
+  printnice(F("Triangles   "), usecTriangles, y);
+  y += 18;
+  printnice(F("RoundRects F"), usecFilledRoundRects, y);
+  y += 18;
+  printnice(F("RoundRects  "), usecRoundRects, y);
+
+  if (h > w)
+  {
+    y += 28;
+    ucg.setScale2x2();
+    ucg.setColor(0, 255, 0); // GREEN
+    ucg.setPrintPos(0, y / 2);
+    ucg.print(F("Benchmark Complete!"));
+  }
+
+  delay(60 * 1000L);
+}
+
+void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clear)
+{
+  Serial.print(item);
+  if (v < 0)
+  {
+    Serial.println(F("N/A"));
+  }
+  else
+  {
+    Serial.println(v);
+  }
+  delay(d);
+  if (clear)
+  {
+    ucg.clearScreen();
+  }
+}
+
+void printnice(const __FlashStringHelper *item, int32_t v, uint32_t y)
+{
+  ucg.undoScale();
+  ucg.setColor(0, 255, 255); // CYAN
+  ucg.setPrintPos(0, y);
+  ucg.print(item);
+
+  y += 9;
+  ucg.setScale2x2();
+  ucg.setColor(255, 255, 0); // YELLOW
+  if (v < 0)
+  {
+    ucg.setPrintPos(90, y / 2);
+    ucg.print(F("N / A"));
+  }
+  else
+  {
+    char str[32] = {0};
+    sprintf(str, "%lu", v);
+    for (char *p = (str + strlen(str)) - 3; p > str; p -= 3)
+    {
+      memmove(p + 1, p, strlen(p) + 1);
+      *p = ',';
+    }
+    while (strlen(str) < 12)
+    {
+      memmove(str + 1, str, strlen(str) + 1);
+      *str = ' ';
+    }
+    ucg.setPrintPos(60, y / 2);
+    ucg.print(str);
+  }
+  ucg.undoScale();
+}
+
+int32_t testFillScreen()
 {
   uint32_t start = micros_start();
   // Shortened this tedious test!
@@ -282,90 +257,99 @@ uint32_t testFillScreen()
   ucg.setColor(0, 0, 0); // BLACK
   ucg.drawBox(0, 0, w, h);
 
-  return (micros() - start) / 5;
+  return micros() - start;
 }
 
-uint32_t testText()
+int32_t testText()
 {
-  uint32_t y = 16;
-  ucg.clearScreen();
+  uint32_t y = 10;
   uint32_t start = micros_start();
-  ucg.setPrintPos(0, y);
-
-  ucg.setColor(255, 255, 255); // WHITE
-  ucg.setColor(1, 0, 0, 0); // BLACK
-  ucg.println(F("Hello World!"));
-  y += 18;
-  ucg.setPrintPos(0, y);
-
-  ucg.setScale2x2();
-  ucg.setColor(255, 0, 0); // RED
-  ucg.print(F("RED "));
-  ucg.setColor(0, 255, 0); // GREEN
-  ucg.print(F("GREEN "));
-  ucg.setColor(0, 0, 255); // BLUE
-  ucg.println(F("BLUE"));
-  y += 18;
-  ucg.setPrintPos(0, y);
-
-  ucg.setColor(255, 255, 0); // YELLOW
-  ucg.println(1234.56);
-  y += 18;
-  ucg.setPrintPos(0, y);
-
-  //	ucg.setTextColor(TFT_RED);
-  //	ucg.setTextSize(3);
-  //	ucg.println(0xDEADBEEF, HEX);
-  //	ucg.println();
-
-  //	ucg.setTextColor(TFT_GREEN);
-  //	ucg.setTextSize(5);
-  //	ucg.println(F("Groop"));
-  //	ucg.setTextSize(2);
-
-  ucg.println(F("I implore thee,"));
-  y += 90;
-  ucg.setPrintPos(0, y);
 
   ucg.undoScale();
+  ucg.setColor(255, 255, 255); // WHITE
+  ucg.setPrintPos(0, y);
+  ucg.print(F("Hello World!"));
+
+  y += 18;
+  ucg.setScale2x2();
+  ucg.setColor(255, 0, 0); // RED
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(F("RED"));
   ucg.setColor(0, 255, 0); // GREEN
-  ucg.println(F("my foonting turlingdromes."));
+  ucg.setPrintPos(40, y / 2);
+  ucg.print(F("GREEN"));
+  ucg.setColor(0, 0, 255); // BLUE
+  ucg.setPrintPos(80, y / 2);
+  ucg.print(F("BLUE"));
+
   y += 18;
-  ucg.setPrintPos(0, y);
+  ucg.setColor(255, 255, 0); // YELLOW
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(1234.56);
 
-  ucg.println(F("And hooptiously drangle me"));
   y += 18;
-  ucg.setPrintPos(0, y);
+  ucg.setColor(255, 255, 255); // WHITE
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(0xDEADBEEF, HEX);
 
-  ucg.println(F("with crinkly bindlewurdles,"));
   y += 18;
-  ucg.setPrintPos(0, y);
+  ucg.setColor(0, 255, 255); // CYAN
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(F("Groop"));
 
-  ucg.println(F("Or I will rend thee"));
   y += 18;
-  ucg.setPrintPos(0, y);
+  ucg.setColor(255, 0, 255); // MAGENTA
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(F("I implore thee,"));
 
-  ucg.println(F("in the gobberwarts"));
   y += 18;
+  ucg.undoScale();
+  ucg.setColor(0, 0, 123); // NAVY
   ucg.setPrintPos(0, y);
+  ucg.print(F("my foonting turlingdromes."));
 
-  ucg.println(F("with my blurglecruncheon,"));
   y += 18;
+  ucg.setColor(0, 125, 0); // DARKGREEN
   ucg.setPrintPos(0, y);
+  ucg.print(F("And hooptiously drangle me"));
 
-  ucg.println(F("see if I don't!"));
+  y += 18;
+  ucg.setColor(0, 125, 123); // DARKCYAN
+  ucg.setPrintPos(0, y);
+  ucg.print(F("with crinkly bindlewurdles,"));
 
-  //	ucg.println(F(""));
-  //	ucg.println(F(""));
-  //  ucg.setColor(255, 0, 255); // MAGENTA
-  //	ucg.setTextSize(6);
-  //	ucg.println(F("Woot!"));
-  uint32_t t = micros() - start;
-  delay(1000);
-  return t;
+  y += 18;
+  ucg.setColor(123, 0, 0); // MAROON
+  ucg.setPrintPos(0, y);
+  ucg.print(F("Or I will rend thee"));
+
+  y += 18;
+  ucg.setColor(123, 0, 123); // PURPLE
+  ucg.setPrintPos(0, y);
+  ucg.print(F("in the gobberwarts"));
+
+  y += 18;
+  ucg.setColor(123, 125, 0); // OLIVE
+  ucg.setPrintPos(0, y);
+  ucg.print(F("with my blurglecruncheon,"));
+
+  y += 18;
+  ucg.setColor(123, 125, 123); // DARKGREY
+  ucg.setPrintPos(0, y);
+  ucg.print(F("see if I don't!"));
+
+  y += 18;
+  ucg.setScale2x2();
+  ucg.setColor(0, 255, 0); // GREEN
+  ucg.setPrintPos(0, y / 2);
+  ucg.print(F("Woot!"));
+
+  ucg.undoScale();
+
+  return micros() - start;
 }
 
-uint32_t testPixels()
+int32_t testPixels()
 {
   uint32_t start = micros_start();
 
@@ -381,19 +365,18 @@ uint32_t testPixels()
   return micros() - start;
 }
 
-uint32_t testLines()
+int32_t testLines()
 {
-  uint32_t start, t;
-  int32_t	x1, y1, x2, y2;
+  uint32_t start;
+  int32_t x1, y1, x2, y2;
 
-  ucg.clearScreen();
+  ucg.setColor(0, 0, 255); // BLUE
 
   x1 = y1 = 0;
   y2 = h - 1;
 
   start = micros_start();
 
-  ucg.setColor(0, 0, 255); // BLUE
   for (x2 = 0; x2 < w; x2 += 6)
   {
     ucg.drawLine(x1, y1, x2, y2);
@@ -405,19 +388,11 @@ uint32_t testLines()
   {
     ucg.drawLine(x1, y1, x2, y2);
   }
-
-  t = micros() - start; // fillScreen doesn't count against timing
-
-  ucg.setColor(0, 0, 0); // BLACK
-  ucg.drawBox(0, 0, w, h);
 
   x1 = w - 1;
   y1 = 0;
   y2 = h - 1;
 
-  start = micros_start();
-
-  ucg.setColor(0, 0, 255); // BLUE
   for (x2 = 0; x2 < w; x2 += 6)
   {
     ucg.drawLine(x1, y1, x2, y2);
@@ -429,18 +404,10 @@ uint32_t testLines()
     ucg.drawLine(x1, y1, x2, y2);
   }
 
-  t += micros() - start;
-
-  ucg.setColor(0, 0, 0); // BLACK
-  ucg.drawBox(0, 0, w, h);
-
   x1 = 0;
   y1 = h - 1;
   y2 = 0;
 
-  start = micros_start();
-
-  ucg.setColor(0, 0, 255); // BLUE
   for (x2 = 0; x2 < w; x2 += 6)
   {
     ucg.drawLine(x1, y1, x2, y2);
@@ -450,18 +417,11 @@ uint32_t testLines()
   {
     ucg.drawLine(x1, y1, x2, y2);
   }
-  t += micros() - start;
-
-  ucg.setColor(0, 0, 0); // BLACK
-  ucg.drawBox(0, 0, w, h);
 
   x1 = w - 1;
   y1 = h - 1;
   y2 = 0;
 
-  start = micros_start();
-
-  ucg.setColor(0, 0, 255); // BLUE
   for (x2 = 0; x2 < w; x2 += 6)
   {
     ucg.drawLine(x1, y1, x2, y2);
@@ -473,37 +433,53 @@ uint32_t testLines()
     ucg.drawLine(x1, y1, x2, y2);
   }
 
-  t += micros() - start;
-
-  return t;
+  return micros() - start;
 }
 
-uint32_t testFastLines()
+int32_t testFastLines()
 {
   uint32_t start;
   int32_t x, y;
-
-  ucg.clearScreen();
 
   start = micros_start();
 
   ucg.setColor(255, 0, 0); // RED
   for (y = 0; y < h; y += 5)
+  {
     ucg.drawHLine(0, y, w);
-
+  }
   ucg.setColor(0, 0, 255); // BLUE
   for (x = 0; x < w; x += 5)
+  {
     ucg.drawVLine(x, 0, h);
+  }
 
   return micros() - start;
 }
 
-uint32_t testRects()
+int32_t testFilledRects()
 {
   uint32_t start;
   int32_t i, i2;
 
-  ucg.clearScreen();
+  start = micros_start();
+
+  for (i = n; i > 0; i -= 6)
+  {
+    i2 = i / 2;
+
+    ucg.setColor(i, i, 0);
+    ucg.drawBox(cx1 - i2, cy1 - i2, i, i);
+  }
+
+  return micros() - start;
+}
+
+int32_t testRects()
+{
+  uint32_t start;
+  int32_t i, i2;
+
   start = micros_start();
 
   ucg.setColor(0, 255, 0); // GREEN
@@ -516,38 +492,11 @@ uint32_t testRects()
   return micros() - start;
 }
 
-uint32_t testFilledRects()
-{
-  uint32_t start, t = 0;
-  int32_t i, i2;
-
-  ucg.clearScreen();
-
-  for (i = n; i > 0; i -= 6)
-  {
-    i2 = i / 2;
-
-    start = micros_start();
-
-    ucg.setColor(255, 255, 0); // YELLOW
-    ucg.drawBox(cx1 - i2, cy1 - i2, i, i);
-
-    t += micros() - start;
-
-    // Outlines are not included in timing results
-    ucg.setColor(255, 0, 255); // MAGENTA
-    ucg.drawFrame(cx1 - i2, cy1 - i2, i, i);
-  }
-
-  return t;
-}
-
-uint32_t testFilledCircles(uint8_t radius)
+int32_t testFilledCircles(uint8_t radius)
 {
   uint32_t start;
   int32_t x, y, r2 = radius * 2;
 
-  ucg.clearScreen();
   start = micros_start();
 
   ucg.setColor(255, 0, 255); // MAGENTA
@@ -562,7 +511,7 @@ uint32_t testFilledCircles(uint8_t radius)
   return micros() - start;
 }
 
-uint32_t testCircles(uint8_t radius)
+int32_t testCircles(uint8_t radius)
 {
   uint32_t start;
   int32_t x, y, r2 = radius * 2;
@@ -585,57 +534,51 @@ uint32_t testCircles(uint8_t radius)
   return micros() - start;
 }
 
-uint32_t testFilledTriangles()
-{
-  uint32_t start, t = 0;
-  int32_t i;
-
-  ucg.clearScreen();
-  start = micros_start();
-
-  for (i = cn; i > 10; i -= 5) {
-    start = micros_start();
-    ucg.setColor(0, i, i);
-    ucg.drawTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i);
-    t += micros() - start;
-    ucg.setColor(i, i, 0);
-    ucg.drawTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i);
-  }
-
-  return t;
-}
-
-uint32_t testRoundRects()
+int32_t testFilledTriangles()
 {
   uint32_t start;
-  int32_t i, i2;
+  int32_t i;
 
-  ucg.clearScreen();
   start = micros_start();
 
-  for (i = 0; i < n1; i += 6)
+  for (i = cn1; i > 10; i -= 5)
   {
-    i2 = i / 2;
-    ucg.setColor(i, 0, 0);
-    ucg.drawRFrame(cx1 - i2, cy1 - i2, i, i, i / 8);
+    ucg.setColor(0, i, i);
+    ucg.drawTriangle(cx1, cy1 - i, cx1 - i, cy1 + i, cx1 + i, cy1 + i);
   }
 
   return micros() - start;
 }
 
-uint32_t testFilledRoundRects()
+int32_t testFilledRoundRects()
 {
   uint32_t start;
   int32_t i, i2;
 
-  ucg.clearScreen();
   start = micros_start();
 
   for (i = n1; i > 20; i -= 6)
   {
     i2 = i / 2;
     ucg.setColor(0, i, 0);
-    ucg.drawRBox(cx1 - i2, cy1 - i2, i, i, i / 8);
+    ucg.drawRBox(cx - i2, cy - i2, i, i, i / 8);
+  }
+
+  return micros() - start;
+}
+
+int32_t testRoundRects()
+{
+  uint32_t start;
+  int32_t i, i2;
+
+  start = micros_start();
+
+  for (i = 20; i < n1; i += 6)
+  {
+    i2 = i / 2;
+    ucg.setColor(i, 0, 0);
+    ucg.drawRFrame(cx - i2, cy - i2, i, i, i / 8);
   }
 
   return micros() - start;
@@ -658,4 +601,3 @@ uint32_t testFilledRoundRects()
   Written by Limor Fried/Ladyada for Adafruit Industries.
   MIT license, all text above must be included in any redistribution
  ****************************************************/
-
