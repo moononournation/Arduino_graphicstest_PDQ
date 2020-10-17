@@ -16,7 +16,7 @@ Adapted from the Adafruit and Xark's PDQ graphicstest sketch.
 ## Testing Libraries
 
 -  Adafruit GFX https://github.com/adafruit/Adafruit-GFX-Library
--  Arduino GFX https://github.com/moononournation/Arduino_GFX
+-  Arduino GFX (ESP32SPI Databus) https://github.com/moononournation/Arduino_GFX
 -  TFT_eSPI https://github.com/Bodmer/TFT_eSPI
 -  Ucglib https://github.com/olikraus/ucglib
 -  UTFT-ESP https://github.com/gnulabis/UTFT-ESP
@@ -29,7 +29,6 @@ Adapted from the Adafruit and Xark's PDQ graphicstest sketch.
 -  Time: 2020 Oct 15
 
 | Benchmark          | Adafruit_GFX  | Arduino_GFX   | LovyanGFX     |TFT_eSPI       | Ucglib        | UTFT-ESP      |
-|                    |               | ESP32SPI      |               |               |               |               |
 | ------------------ | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
 | Screen fill        |       195,259 |       160,096 |       154,216 |       166,761 |     2,010,234 |     4,907,718 |
 | Text               |        97,567 |        18,933 |        21,726 |        24,662 |       107,286 |       492,000 |
