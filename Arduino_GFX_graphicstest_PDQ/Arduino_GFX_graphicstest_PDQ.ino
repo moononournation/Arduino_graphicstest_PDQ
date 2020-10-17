@@ -11,7 +11,7 @@
 #define TFT_MOSI 21
 #define TFT_SCLK 22
 #define TFT_MISO 27
-#define SPI_FREQUENCY 80000000
+#define SPI_FREQUENCY 40000000
 
 #include <Arduino_SWSPI.h>
 #include <Arduino_HWSPI.h>
