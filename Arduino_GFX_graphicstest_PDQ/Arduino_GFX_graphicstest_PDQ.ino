@@ -11,7 +11,7 @@
 #define TFT_MOSI 21
 #define TFT_SCLK 22
 #define TFT_MISO 27
-#define SPI_FREQUENCY 40000000
+#define SPI_FREQUENCY 80000000
 
 #include <Arduino_SWSPI.h>
 #include <Arduino_HWSPI.h>
@@ -21,8 +21,10 @@
 #include <Arduino_Display.h> // Various display driver
 
 // Arduino_DataBus *bus = new Arduino_SWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
+// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS); // for non-ESP32
+// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
+// Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1, VSPI, false);
 // Arduino_DataBus *bus = new Arduino_ESP32SPI_DMA(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, TFT_RST);
 
