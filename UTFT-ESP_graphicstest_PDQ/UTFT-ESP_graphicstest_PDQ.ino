@@ -444,8 +444,6 @@ int32_t testFilledRects()
   {
     i2 = i / 2;
 
-    start = micros_start();
-
     tft.setColor(i, i, 0);
     tft.fillRect(cx - i2, cy - i2, cx + i2 - 1, cy + i2 - 1);
   }
