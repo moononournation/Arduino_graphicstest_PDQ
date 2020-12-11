@@ -13,20 +13,15 @@
 #define TFT_MISO 27
 #define SPI_FREQUENCY 40000000
 
-#include <Arduino_SWSPI.h>
-#include <Arduino_HWSPI.h>
-#include <Arduino_ESP32SPI.h>
-#include <Arduino_ESP32SPI_DMA.h>
-#include <Arduino_GFX.h>     // Core graphics library
-#include <Arduino_Display.h> // Various display driver
+#include <Arduino_GFX_Library.h>
 
 // Arduino_DataBus *bus = new Arduino_SWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 // Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS); // for non-ESP32
-// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
+//Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
+ Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 // Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1, VSPI, false);
 // Arduino_DataBus *bus = new Arduino_ESP32SPI_DMA(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, TFT_RST);
+Arduino_HX8347D *gfx = new Arduino_HX8347D(bus, TFT_RST, 0, true);
 
 uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
 
