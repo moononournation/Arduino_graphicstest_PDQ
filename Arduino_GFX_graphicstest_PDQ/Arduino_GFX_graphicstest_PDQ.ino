@@ -20,7 +20,6 @@
 //Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
  Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 // Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1, VSPI, false);
-// Arduino_DataBus *bus = new Arduino_ESP32SPI_DMA(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
 Arduino_HX8347D *gfx = new Arduino_HX8347D(bus, TFT_RST, 0, true);
 
 uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
