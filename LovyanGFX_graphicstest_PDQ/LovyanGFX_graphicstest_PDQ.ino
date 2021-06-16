@@ -4,13 +4,13 @@
   See end of file for original header text and MIT license info.
 */
 
-#define TFT_BL 23
+#define TFT_BL 22
 #define TFT_CS 5
-#define TFT_RST 18
-#define TFT_DC 19
-#define TFT_MOSI 21
-#define TFT_SCLK 22
-#define TFT_MISO 27
+#define TFT_RST 33
+#define TFT_DC 27
+#define TFT_MOSI 23
+#define TFT_SCLK 18
+#define TFT_MISO 19
 #define SPI_FREQUENCY 40000000
 
 #include <LovyanGFX.hpp>
@@ -18,17 +18,14 @@
 static LGFX lcd;
 static lgfx::Panel_ILI9341 panel;
 
-uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+int32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+uint8_t tsa, tsb, tsc, ds;
 
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial)
-  {
-    // wait and do nothing
-  }
-
-  Serial.println("Arduino_GFX library Test!");
+  while(!Serial);
+  Serial.println("Lovyan_GFX library Test!");
 
   panel.freq_write = SPI_FREQUENCY;
   panel.freq_fill = SPI_FREQUENCY;
@@ -52,6 +49,10 @@ void setup()
   cy1 = cy - 1;
   cn = min(cx1, cy1);
   cn1 = cn - 1;
+  tsa = ((w <= 176) || (h <= 160)) ? 1 : (((w <= 240) || (h <= 240)) ? 2 : 3); // text size A
+  tsb = ((w <= 240) || (h <= 220)) ? 1 : 2;                                    // text size B
+  tsc = ((w <= 220) || (h <= 220)) ? 1 : 2;                                    // text size C
+  ds = (w <= 160) ? 9 : 12;                                                    // digit size
 
 #ifdef TFT_BL
   pinMode(TFT_BL, OUTPUT);
@@ -93,6 +94,12 @@ void loop(void)
   int32_t usecRects = testRects();
   serialOut(F("Rectangles (outline)\t"), usecRects, 100, true);
 
+  int32_t usecFilledTrangles = testFilledTriangles();
+  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
+
+  int32_t usecTriangles = testTriangles();
+  serialOut(F("Triangles (outline)\t"), usecTriangles, 100, true);
+
   int32_t usecFilledCircles = testFilledCircles(10);
   serialOut(F("Circles (filled)\t"), usecFilledCircles, 100, false);
 
@@ -104,12 +111,6 @@ void loop(void)
 
   int32_t usecArcs = testArcs();
   serialOut(F("Arcs (outline)\t"), usecArcs, 100, true);
-
-  int32_t usecFilledTrangles = testFilledTriangles();
-  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
-
-  int32_t usecTriangles = testTriangles();
-  serialOut(F("Triangles (outline)\t"), usecTriangles, 100, true);
 
   int32_t usecFilledRoundRects = testFilledRoundRects();
   serialOut(F("Rounded rects (filled)\t"), usecFilledRoundRects, 100, false);
@@ -133,16 +134,20 @@ void loop(void)
 
   lcd.setCursor(0, 0);
 
-  lcd.setTextSize(2);
+  lcd.setTextSize(tsa);
   lcd.setTextColor(TFT_MAGENTA);
   lcd.println(F("LovyanGFX PDQ"));
 
   if (h > w)
   {
-    lcd.setTextSize(1);
+    lcd.setTextSize(tsb);
     lcd.setTextColor(TFT_GREEN);
-    lcd.print(F("\nBenchmark       "));
-    lcd.setTextSize(2);
+    lcd.print(F("\nBenchmark "));
+    lcd.setTextSize(tsc);
+    if (ds == 12)
+    {
+      lcd.print(F("   "));
+    }
     lcd.println(F("micro-secs"));
   }
 
@@ -154,18 +159,18 @@ void loop(void)
   printnice(F("H/V Lines   "), usecFastLines);
   printnice(F("Rectangles F"), usecFilledRects);
   printnice(F("Rectangles  "), usecRects);
+  printnice(F("Triangles F "), usecFilledTrangles);
+  printnice(F("Triangles   "), usecTriangles);
   printnice(F("Circles F   "), usecFilledCircles);
   printnice(F("Circles     "), usecCircles);
   printnice(F("Arcs F      "), usecFilledArcs);
   printnice(F("Arcs        "), usecArcs);
-  printnice(F("Triangles F "), usecFilledTrangles);
-  printnice(F("Triangles   "), usecTriangles);
   printnice(F("RoundRects F"), usecFilledRoundRects);
   printnice(F("RoundRects  "), usecRoundRects);
 
-  if (h > w)
+  if ((h > w) || (h > 240))
   {
-    lcd.setTextSize(2);
+    lcd.setTextSize(tsc);
     lcd.setTextColor(TFT_GREEN);
     lcd.print(F("\nBenchmark Complete!"));
   }
@@ -173,7 +178,7 @@ void loop(void)
   delay(60 * 1000L);
 }
 
-void serialOut(const __FlashStringHelper *item, uint32_t v, uint32_t d, bool clear)
+void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clear)
 {
   Serial.print(item);
   if (v < 0)
@@ -191,13 +196,13 @@ void serialOut(const __FlashStringHelper *item, uint32_t v, uint32_t d, bool cle
   }
 }
 
-void printnice(const __FlashStringHelper *item, int32_t v)
+void printnice(const __FlashStringHelper *item, long int v)
 {
-  lcd.setTextSize(1);
+  lcd.setTextSize(tsb);
   lcd.setTextColor(TFT_CYAN);
   lcd.print(item);
 
-  lcd.setTextSize(2);
+  lcd.setTextSize(tsc);
   lcd.setTextColor(TFT_YELLOW);
   if (v < 0)
   {
@@ -206,13 +211,17 @@ void printnice(const __FlashStringHelper *item, int32_t v)
   else
   {
     char str[32] = {0};
-    sprintf(str, "%lu", v);
+#ifdef RTL8722DM
+    sprintf(str, "%d", (int)v);
+#else
+    sprintf(str, "%ld", v);
+#endif
     for (char *p = (str + strlen(str)) - 3; p > str; p -= 3)
     {
       memmove(p + 1, p, strlen(p) + 1);
       *p = ',';
     }
-    while (strlen(str) < 12)
+    while (strlen(str) < ds)
     {
       memmove(str + 1, str, strlen(str) + 1);
       *str = ' ';
@@ -251,6 +260,7 @@ int32_t testText()
   lcd.setTextColor(lcd.color565(0x00, 0x00, 0xff));
   lcd.println(F("BLUE"));
 
+  lcd.setTextSize(tsa);
   lcd.setTextColor(TFT_YELLOW);
   lcd.println(1234.56);
 
@@ -260,6 +270,7 @@ int32_t testText()
   lcd.setTextColor(TFT_CYAN, TFT_WHITE);
   lcd.println(F("Groop,"));
 
+  lcd.setTextSize(tsc);
   lcd.setTextColor(TFT_MAGENTA, TFT_WHITE);
   lcd.println(F("I implore thee,"));
 
@@ -324,9 +335,9 @@ int32_t testPixels()
 {
   uint32_t start = micros_start();
 
-  for (uint16_t y = 0; y < h; y++)
+  for (int16_t y = 0; y < h; y++)
   {
-    for (uint16_t x = 0; x < w; x++)
+    for (int16_t x = 0; x < w; x++)
     {
       lcd.drawPixel(x, y, lcd.color565(x << 3, y << 3, x * y));
     }
@@ -343,15 +354,17 @@ int32_t testLines()
   uint32_t start;
   int32_t x1, y1, x2, y2;
 
-  x1 = y1 = 0;
-  y2 = h - 1;
-
   start = micros_start();
 
+  x1 = y1 = 0;
+  y2 = h - 1;
   for (x2 = 0; x2 < w; x2 += 6)
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = w - 1;
 
@@ -359,6 +372,9 @@ int32_t testLines()
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = w - 1;
   y1 = 0;
@@ -368,12 +384,18 @@ int32_t testLines()
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = 0;
   y1 = h - 1;
@@ -383,26 +405,38 @@ int32_t testLines()
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
+
   x2 = w - 1;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = w - 1;
   y1 = h - 1;
   y2 = 0;
-
   for (x2 = 0; x2 < w; x2 += 6)
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     lcd.drawLine(x1, y1, x2, y2, TFT_BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   return micros() - start;
 }

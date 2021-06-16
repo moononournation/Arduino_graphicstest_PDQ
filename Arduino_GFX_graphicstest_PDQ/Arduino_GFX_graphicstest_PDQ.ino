@@ -4,34 +4,27 @@
   See end of file for original header text and MIT license info.
 */
 
-#define TFT_BL 23
+#define TFT_BL 22
 #define TFT_CS 5
-#define TFT_RST 18
-#define TFT_DC 19
-#define TFT_MOSI 21
-#define TFT_SCLK 22
-#define TFT_MISO 27
+#define TFT_RST 33
+#define TFT_DC 27
+#define TFT_MOSI 23
+#define TFT_SCLK 18
+#define TFT_MISO 19
 #define SPI_FREQUENCY 40000000
 
 #include <Arduino_GFX_Library.h>
 
-// Arduino_DataBus *bus = new Arduino_SWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-// Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS); // for non-ESP32
-//Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
- Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1);
-// Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1, VSPI, false);
-Arduino_HX8347D *gfx = new Arduino_HX8347D(bus, TFT_RST, 0, true);
+Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
+Arduino_GFX *gfx = new Arduino_ILI9341(bus, TFT_RST, 0 /* rotation */, false /* IPS */);
 
-uint32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+int32_t w, h, n, n1, cx, cy, cx1, cy1, cn, cn1;
+uint8_t tsa, tsb, tsc, ds;
 
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial)
-  {
-    // wait and do nothing
-  }
-
+  while(!Serial);
   Serial.println("Arduino_GFX library Test!");
 
   gfx->begin(SPI_FREQUENCY);
@@ -46,6 +39,10 @@ void setup()
   cy1 = cy - 1;
   cn = min(cx1, cy1);
   cn1 = cn - 1;
+  tsa = ((w <= 176) || (h <= 160)) ? 1 : (((w <= 240) || (h <= 240)) ? 2 : 3); // text size A
+  tsb = ((w <= 240) || (h <= 220)) ? 1 : 2;                                    // text size B
+  tsc = ((w <= 220) || (h <= 220)) ? 1 : 2;                                    // text size C
+  ds = (w <= 160) ? 9 : 12;                                                    // digit size
 
 #ifdef TFT_BL
   pinMode(TFT_BL, OUTPUT);
@@ -87,6 +84,12 @@ void loop(void)
   int32_t usecRects = testRects();
   serialOut(F("Rectangles (outline)\t"), usecRects, 100, true);
 
+  int32_t usecFilledTrangles = testFilledTriangles();
+  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
+
+  int32_t usecTriangles = testTriangles();
+  serialOut(F("Triangles (outline)\t"), usecTriangles, 100, true);
+
   int32_t usecFilledCircles = testFilledCircles(10);
   serialOut(F("Circles (filled)\t"), usecFilledCircles, 100, false);
 
@@ -98,12 +101,6 @@ void loop(void)
 
   int32_t usecArcs = testArcs();
   serialOut(F("Arcs (outline)\t"), usecArcs, 100, true);
-
-  int32_t usecFilledTrangles = testFilledTriangles();
-  serialOut(F("Triangles (filled)\t"), usecFilledTrangles, 100, false);
-
-  int32_t usecTriangles = testTriangles();
-  serialOut(F("Triangles (outline)\t"), usecTriangles, 100, true);
 
   int32_t usecFilledRoundRects = testFilledRoundRects();
   serialOut(F("Rounded rects (filled)\t"), usecFilledRoundRects, 100, false);
@@ -127,16 +124,20 @@ void loop(void)
 
   gfx->setCursor(0, 0);
 
-  gfx->setTextSize(2);
+  gfx->setTextSize(tsa);
   gfx->setTextColor(MAGENTA);
-  gfx->println(F("Arduino GFX PDQ"));
+  gfx->println(F("Arduino_GFX PDQ"));
 
   if (h > w)
   {
-    gfx->setTextSize(1);
+    gfx->setTextSize(tsb);
     gfx->setTextColor(GREEN);
-    gfx->print(F("\nBenchmark       "));
-    gfx->setTextSize(2);
+    gfx->print(F("\nBenchmark "));
+    gfx->setTextSize(tsc);
+    if (ds == 12)
+    {
+      gfx->print(F("   "));
+    }
     gfx->println(F("micro-secs"));
   }
 
@@ -148,18 +149,18 @@ void loop(void)
   printnice(F("H/V Lines   "), usecFastLines);
   printnice(F("Rectangles F"), usecFilledRects);
   printnice(F("Rectangles  "), usecRects);
+  printnice(F("Triangles F "), usecFilledTrangles);
+  printnice(F("Triangles   "), usecTriangles);
   printnice(F("Circles F   "), usecFilledCircles);
   printnice(F("Circles     "), usecCircles);
   printnice(F("Arcs F      "), usecFilledArcs);
   printnice(F("Arcs        "), usecArcs);
-  printnice(F("Triangles F "), usecFilledTrangles);
-  printnice(F("Triangles   "), usecTriangles);
   printnice(F("RoundRects F"), usecFilledRoundRects);
   printnice(F("RoundRects  "), usecRoundRects);
 
-  if (h > w)
+  if ((h > w) || (h > 240))
   {
-    gfx->setTextSize(2);
+    gfx->setTextSize(tsc);
     gfx->setTextColor(GREEN);
     gfx->print(F("\nBenchmark Complete!"));
   }
@@ -185,13 +186,13 @@ void serialOut(const __FlashStringHelper *item, int32_t v, uint32_t d, bool clea
   }
 }
 
-void printnice(const __FlashStringHelper *item, int32_t v)
+void printnice(const __FlashStringHelper *item, long int v)
 {
-  gfx->setTextSize(1);
+  gfx->setTextSize(tsb);
   gfx->setTextColor(CYAN);
   gfx->print(item);
 
-  gfx->setTextSize(2);
+  gfx->setTextSize(tsc);
   gfx->setTextColor(YELLOW);
   if (v < 0)
   {
@@ -200,13 +201,17 @@ void printnice(const __FlashStringHelper *item, int32_t v)
   else
   {
     char str[32] = {0};
-    sprintf(str, "%lu", v);
+#ifdef RTL8722DM
+    sprintf(str, "%d", (int)v);
+#else
+    sprintf(str, "%ld", v);
+#endif
     for (char *p = (str + strlen(str)) - 3; p > str; p -= 3)
     {
       memmove(p + 1, p, strlen(p) + 1);
       *p = ',';
     }
-    while (strlen(str) < 12)
+    while (strlen(str) < ds)
     {
       memmove(str + 1, str, strlen(str) + 1);
       *str = ' ';
@@ -245,6 +250,7 @@ int32_t testText()
   gfx->setTextColor(gfx->color565(0x00, 0x00, 0xff));
   gfx->println(F("BLUE"));
 
+  gfx->setTextSize(tsa);
   gfx->setTextColor(YELLOW);
   gfx->println(1234.56);
 
@@ -254,6 +260,7 @@ int32_t testText()
   gfx->setTextColor(CYAN, WHITE);
   gfx->println(F("Groop,"));
 
+  gfx->setTextSize(tsc);
   gfx->setTextColor(MAGENTA, WHITE);
   gfx->println(F("I implore thee,"));
 
@@ -318,12 +325,15 @@ int32_t testPixels()
 {
   uint32_t start = micros_start();
 
-  for (uint16_t y = 0; y < h; y++)
+  for (int16_t y = 0; y < h; y++)
   {
-    for (uint16_t x = 0; x < w; x++)
+    for (int16_t x = 0; x < w; x++)
     {
       gfx->drawPixel(x, y, gfx->color565(x << 3, y << 3, x * y));
     }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
   }
 
   return micros() - start;
@@ -334,66 +344,86 @@ int32_t testLines()
   uint32_t start;
   int32_t x1, y1, x2, y2;
 
-  x1 = y1 = 0;
-  y2 = h - 1;
-
   start = micros_start();
 
+  x1 = y1 = 0;
+  y2 = h - 1;
   for (x2 = 0; x2 < w; x2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = w - 1;
-
   for (y2 = 0; y2 < h; y2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = w - 1;
   y1 = 0;
   y2 = h - 1;
-
   for (x2 = 0; x2 < w; x2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = 0;
   y1 = h - 1;
   y2 = 0;
-
   for (x2 = 0; x2 < w; x2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
+
   x2 = w - 1;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x1 = w - 1;
   y1 = h - 1;
   y2 = 0;
-
   for (x2 = 0; x2 < w; x2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   x2 = 0;
   for (y2 = 0; y2 < h; y2 += 6)
   {
     gfx->drawLine(x1, y1, x2, y2, BLUE);
   }
+#ifdef ESP8266
+    yield(); // avoid long run triggered ESP8266 WDT restart
+#endif
 
   return micros() - start;
 }

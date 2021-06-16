@@ -1,0 +1,75 @@
+Adafruit GFX library Test!
+Benchmark	micro-secs
+Screen fill	195782
+Text	97662
+Pixels	1365211
+Lines	1062311
+Horiz/Vert Lines	17637
+Rectangles (filled)	406817
+Rectangles (outline)	11641
+Triangles (filled)	150941
+Triangles (outline)	58843
+Circles (filled)	76739
+Circles (outline)	118125
+Arcs (filled)	N/A
+Arcs (outline)	N/A
+Rounded rects (filled)	408534
+Rounded rects (outline)	43185
+Done!
+
+Arduino_GFX library Test!
+Benchmark	micro-secs
+Screen fill	160094
+Text	18960
+Pixels	903549
+Lines	412026
+Horiz/Vert Lines	14197
+Rectangles (filled)	332696
+Rectangles (outline)	9254
+Triangles (filled)	118010
+Triangles (outline)	23570
+Circles (filled)	52170
+Circles (outline)	40955
+Arcs (filled)	33381
+Arcs (outline)	66054
+Rounded rects (filled)	338136
+Rounded rects (outline)	21562
+Done!
+
+Lovyan_GFX library Test!
+Benchmark	micro-secs
+Screen fill	154341
+Text	22473
+Pixels	867702
+Lines	269060
+Horiz/Vert Lines	13692
+Rectangles (filled)	320761
+Rectangles (outline)	8545
+Triangles (filled)	105661
+Triangles (outline)	15884
+Circles (filled)	42787
+Circles (outline)	25959
+Arcs (filled)	21546
+Arcs (outline)	47901
+Rounded rects (filled)	318882
+Rounded rects (outline)	13089
+Done!
+
+TFT_eSPI library Test!
+Benchmark	micro-secs
+Screen fill	155938
+Text	21752
+Pixels	775781
+Lines	264950
+Horiz/Vert Lines	13833
+Rectangles (filled)	323908
+Rectangles (outline)	8714
+Triangles (filled)	109675
+Triangles (outline)	16277
+Circles (filled)	45827
+Circles (outline)	25269
+Arcs (filled)	N/A
+Arcs (outline)	N/A
+Rounded rects (filled)	323189
+Rounded rects (outline)	15371
+Done!
